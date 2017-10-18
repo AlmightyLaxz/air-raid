@@ -1,8 +1,10 @@
-bombsfallen = 0
-roundnum = 1
+bombsfallen = bombsfallen or  0
+totalbombsfallen = totalbombsfallen or 0
+roundnum = roundnum or 1
 SetGlobalInt(0, "bombsfallen")
 
 util.AddNetworkString("ar_round_start_sound")
+util.AddNetworkString("ar_leaderboard")
 
 function AR_Start()
 	PrintMessage(HUD_PRINTCENTER, "ROUND START")
@@ -11,10 +13,12 @@ function AR_Start()
 	roundnum = 1
 	timer.Destroy("ar_round")
 	bombsfallen = 0
+	totalbombsfallen = 0
 	game.CleanUpMap()
 	for k,v in pairs(player.GetAll()) do
 		v:SetTeam(TEAM_PLAYER)
 		v:Spawn()
+		v:IncrementRounds()
 	end
 	timer.Create("ar_round", 4, 0, AR_Bombing)
 end
@@ -34,7 +38,8 @@ end
 function AR_Bombing()
 	MakeBomb()
 	bombsfallen = bombsfallen + 0.5
-	SetGlobalInt(GetGlobalInt("bombsfallen")+1, "bombsfallen")
+	totalbombsfallen = totalbombsfallen + 1
+	SetGlobalInt("bombsfallen", totalbombsfallen)
 	local stopround = true
 	for k,v in pairs(player.GetAll()) do
 		if v:Alive() and v:Team() == TEAM_PLAYER then
@@ -42,6 +47,13 @@ function AR_Bombing()
 		end
 	end
 	if stopround then
+		for k,v in pairs(player.GetAll()) do
+			if v:Team() == TEAM_PLAYER then
+				if v:GetHighscore() < totalbombsfallen then
+					v:SetHighscore(totalbombsfallen)
+				end
+			end
+		end
 		AR_Start()
 	end
 	if bombsfallen == 10 then 
@@ -85,6 +97,15 @@ function RandomPos()
 	end
 end
 
+function GM:PlayerInitialSpawn(ply)
+	if not timer.Exists("ar_round") then
+		AR_Start()
+	end
+	if ply:IsNew() then
+		ply:NewPlayer()
+	end
+end
+
 function GM:PlayerSpawn(ply)
 	if ply:Team() == TEAM_UNASSIGNED then
 		ply:StripWeapons()
@@ -100,7 +121,16 @@ function GM:PlayerSpawn(ply)
 end
 
 function GM:PlayerDeath(ply, inf, att)
+	if ply:GetHighscore() < totalbombsfallen then
+		ply:SetHighscore(totalbombsfallen)
+	end
 	ply:SetTeam(TEAM_UNASSIGNED)
+end
+
+function GM:ShowHelp(ply)
+	net.Start("ar_leaderboard")
+		net.WriteTable(GetTop10())
+	net.Send(ply)
 end
 
 function GM:OnPhysgunReload() return false end
