@@ -30,7 +30,7 @@ if SERVER then
 	    timer.Simple(15, function() if IsValid(self) then self:Remove() end end)
 	end
 	
-	function ENT:Touch()
+	function ENT:PhysicsCollide()
 	    util.BlastDamage(self, self, self:GetPos(), 400, 400)
 	    local effect = EffectData()
       	effect:SetStart(self:GetPos())
@@ -41,6 +41,6 @@ if SERVER then
       	effect:SetNormal(Vector(0,0,0))
       	effect:SetOrigin(self:GetPos())
       	util.Effect("m9k_gdcw_tpaboom", effect, true, true)
-	    self:Remove()
+	    SafeRemoveEntityDelayed(self, 0.05)
 	end
 end
