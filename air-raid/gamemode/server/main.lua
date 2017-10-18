@@ -32,12 +32,12 @@ end
 function AR_NextRound()
 	roundnum = roundnum + 1
 	bombsfallen = 0
-	timer.Create("ar_round", math.Clamp(4-roundnum, 0.5, 4), 0, AR_Bombing)
+	timer.Create("ar_round", math.Clamp(3-roundnum/4, 0.2, 3), 0, AR_Bombing)
 end
 
 function AR_Bombing()
 	MakeBomb()
-	bombsfallen = bombsfallen + 0.5
+	bombsfallen = bombsfallen + 1
 	totalbombsfallen = totalbombsfallen + 1
 	SetGlobalInt("bombsfallen", totalbombsfallen)
 	local stopround = true
@@ -48,7 +48,7 @@ function AR_Bombing()
 	end
 	if stopround then
 		for k,v in pairs(player.GetAll()) do
-			if v:Team() == TEAM_PLAYER then
+			if v:Alive() and v:Team() == TEAM_PLAYER then
 				if v:GetHighscore() < totalbombsfallen then
 					v:SetHighscore(totalbombsfallen)
 				end
@@ -56,14 +56,14 @@ function AR_Bombing()
 		end
 		AR_Start()
 	end
-	if bombsfallen == 10 then 
+	if bombsfallen == roundnum*2 then 
 		timer.Destroy("ar_round")
 		AR_NextRound()
 	end
 end
 
 function MakeBomb()
-	if roundnum < 5 then
+	if roundnum < 7 then
 		local bomb = ents.Create("ar_bomb")
 		bomb:SetPos(RandomPos())
 		bomb:SetAngles(Angle(90,0,0))
@@ -114,6 +114,8 @@ function GM:PlayerSpawn(ply)
 	else
 		ply:UnSpectate()
 	end
+	ply:SetDeaths(ply:GetRoundsPlayed())
+	ply:SetFrags(ply:GetHighscore())
 	ply:StripWeapons()
 	ply:Give("weapon_ar_unarmed")
 	ply:SetArmor(100)
